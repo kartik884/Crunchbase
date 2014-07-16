@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.expression.spel.ast.Projection;
+import org.springframework.stereotype.Repository;
 
 import com.crunch.config.MongoConfig;
 import com.crunch.pojo.Company;
@@ -22,8 +23,15 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
+@Repository
 public class CompanyDAO {
 	MongoOperations mongoOperations;
+	MongoConfig mongoConfig;
+	
+	public CompanyDAO() throws Exception{		
+			mongoConfig = new MongoConfig();		
+			mongoOperations = mongoConfig.mongoOperations();		
+	}
 	
 	public List<Company> getTopCompanies(int limit)
 	{
@@ -42,6 +50,7 @@ public class CompanyDAO {
 		
 	}
 	
+	//used to correct the field total_money_raised the company collection
 	public static void correctTotalRaisedMoney()
 	{
 		
@@ -75,7 +84,7 @@ public class CompanyDAO {
 			
 			String name = dbobject.get("name").toString();
 			System.out.println("Cursor name: "+name);
-			
+		
 			BasicDBObject newobject = new BasicDBObject();
 			String totalMoney="";
 			if(dbobject.get("total_money_raised") != null)
@@ -143,17 +152,20 @@ public class CompanyDAO {
 	public static void main(String[] args)
 	{
 		MongoConfig m = new MongoConfig();
-		CompanyDAO c = new CompanyDAO();
+		CompanyDAO c;
 		try {
+			c = new CompanyDAO();
 			c.mongoOperations = m.mongoOperations();
+			
+		
+		for(Company com: c.getTopCompanies(100))
+		{
+			System.out.println(com.toString());			
+		}
+		
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
-		for(Company com: c.getTopCompanies(10))
-		{
-			System.out.println(com.toString());
-			System.out.println();			
 		}
 	}
 	

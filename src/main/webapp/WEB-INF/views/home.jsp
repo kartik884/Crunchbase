@@ -87,7 +87,7 @@
         <div class="col-sm-3 col-md-2 sidebar">
           <ul class="nav nav-sidebar">
             <li class="active"><a href="#">Overview</a></li>
-            <li><a href="#">Reports</a></li>
+            <li><a href="report">Reports</a></li>
             <li><a href="#">Analytics</a></li>
             <li><a href="#">Export</a></li>
           </ul>
@@ -115,11 +115,20 @@
             </div> -->
           
           <div class="panel panel-default">			  
-			  <div class="panel-heading">Company Ranking</div>
+			  <div class="panel-heading" >Company Ranking</div>
 			
 			  <!-- Table -->
-			  <table id="" class="table">
+			  <table id="compRankTable" class="table table-hover">
+			   <thead>
+			   <tr>
+			   <th>Company Name</th>
+			   <th>Money Raised</th>
+			   </tr>
+			   </thead>
 			   
+			   <tbody id="compRankTableBody">
+			   
+			   </tbody>
 			  </table>
 			</div>  
             
@@ -134,7 +143,25 @@
 
 $(document).ready(function(){
 	
-	var servicename ='/company/top100company';
+	$('#compRankTable').ready(function(){
+		alert("Getting the data ");
+		var servicename ='company/top100company';
+		$.get(servicename,"json",function(data){
+			var obj = data;
+			//alert("filling the data");
+			for(var i=0;i<obj.length;i++){
+				var moneyraised = parseFloat(obj[i].total_money_raised.toString());
+				//alert("Money Raised"+obj[i].total_money_raised);
+				$('#compRankTableBody').append(
+						"<tr><td>"
+						+ obj[i].name
+						+ "</td>"+
+						"<td>"+obj[i].total_money_raised
+						+"</td></tr>");
+			}
+		});
+	});
+	
 	
 });
 

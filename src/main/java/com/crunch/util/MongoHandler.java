@@ -19,7 +19,7 @@ public class MongoHandler {
 		}catch(UnknownHostException uhe){
 			uhe.printStackTrace();
 		}
-		DB db = mongo.getDB("crunch");
+		DB db = mongo.getDB("crunchV2");
 		
 		return db;		
 	}

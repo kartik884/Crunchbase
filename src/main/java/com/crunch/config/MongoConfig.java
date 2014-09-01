@@ -15,7 +15,7 @@ import com.mongodb.Mongo;
 public class MongoConfig {
 	public @Bean
 	MongoDbFactory mongoDbFactory() throws Exception {
-		return new SimpleMongoDbFactory(new Mongo(), "crunch");
+		return new SimpleMongoDbFactory(new Mongo(), "crunchV2");
 	}
 
 	public @Bean

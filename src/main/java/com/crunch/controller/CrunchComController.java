@@ -2,7 +2,9 @@ package com.crunch.controller;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.TreeMap;
 
 import org.json.simple.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.crunch.dao.CompanyDAO;
 import com.crunch.pojo.Company;
 import com.crunch.pojo.FundRaisedPerYearPerRound;
+import com.crunch.pojo.InvestorsInfo;
 import com.crunch.service.CompanyService;
 
 @Controller
@@ -42,6 +45,16 @@ public class CrunchComController {
 		return compService.getAvgFundRaisedPerYearPerRound();
 	}
 
+	@RequestMapping(value="/getinvestortype",method=RequestMethod.GET)
+	public @ResponseBody HashMap<String, InvestorsInfo> getTypesOfInvestors()
+	{				
+		return compService.getTypesOfInvestors();
+	}
 	
+	@RequestMapping(value="/getinvestorsLocation",method=RequestMethod.GET)
+	public @ResponseBody TreeMap<String, Integer> getInvestorsBasedOnLocation()
+	{				
+		return compService.getInvestorsBasedOnLocation();
+	}
 	
 }

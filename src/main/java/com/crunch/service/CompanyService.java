@@ -48,4 +48,8 @@ public class CompanyService {
 	public TreeMap<String, Integer> getInvestorsBasedOnLocation(){
 		return compDao.getInvestorsBasedOnLocation();
 	}
+	
+	public JSONArray investorsOnSearchedLocation(String searchText){
+		return compDao.investorsOnSearchedLocation(searchText);
+	}
 }

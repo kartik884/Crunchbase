@@ -11,9 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.crunch.dao.CompanyDAO;
 import com.crunch.pojo.Company;
 import com.crunch.pojo.FundRaisedPerYearPerRound;
 import com.crunch.pojo.InvestorsInfo;
@@ -55,6 +55,11 @@ public class CrunchComController {
 	public @ResponseBody TreeMap<String, Integer> getInvestorsBasedOnLocation()
 	{				
 		return compService.getInvestorsBasedOnLocation();
+	}
+	
+	@RequestMapping(value="/searchedlocation",method=RequestMethod.GET)
+	public @ResponseBody JSONArray investorsOnSearchedLocation(@RequestParam(value = "searchText") String searchText){
+		return compService.investorsOnSearchedLocation(searchText);
 	}
 	
 }

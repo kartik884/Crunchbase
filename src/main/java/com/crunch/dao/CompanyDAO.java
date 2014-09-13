@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import org.bson.types.ObjectId;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -149,7 +150,7 @@ public class CompanyDAO {
 			jsonobj =  (JSONObject)parser.parse(cmdresult.toString());
 			
 			jsonarray = (JSONArray)jsonobj.get("result");
-			System.out.println("aggregation result: "+cmdresult.toString());
+			System.out.println("aggregation result: fund raised per year");
 		}
 		catch(Exception pex){
 			pex.printStackTrace();
@@ -217,6 +218,26 @@ public class CompanyDAO {
 		return fundperyearperroundlist;	
 	}
 	
+	
+	public class CountAndPrice{
+		int count;
+		double moneyRaised;
+		public int getCount() {
+			return count;
+		}
+		public void setCount(int count) {
+			this.count = count;
+		}
+		public double getMoneyRaised() {
+			return moneyRaised;
+		}
+		public void setMoneyRaised(double moneyRaised) {
+			this.moneyRaised = moneyRaised;
+		}
+		
+		
+	}
+	
 	public HashMap<String, InvestorsInfo> getTypesOfInvestors(){
 		
 		if(invInfo!= null)
@@ -242,15 +263,16 @@ public class CompanyDAO {
 			jsonobj =  (JSONObject)parser.parse(cmdresult.toString());		
 			jsonarray = (JSONArray)jsonobj.get("result");
 					
+			System.out.println("started");
 			//loop to iterate over the types of startup
 			for(int i=0;i<jsonarray.size();i++){
 				JSONObject temp = (JSONObject) jsonarray.get(i);
 				String type = temp.get("_id").toString();
 				investersList =  (JSONArray) temp.get("list");				
 				InvestorsInfo invInfo = new InvestorsInfo();
-				HashMap<Integer, Integer> yearNoofFunds = new HashMap<Integer, Integer>();
+				HashMap<Integer, CountAndPrice> yearNoofFunds = new HashMap<Integer, CountAndPrice>();
 				ArrayList<String> fundingRoundsArrList = new ArrayList<String>();
-				System.out.println("Type "+type);
+				//System.out.println("Type "+type);
 				
 				//loop over investments made by a particular type of investor
 				for(int j=0;j<investersList.size();j++){
@@ -291,15 +313,16 @@ public class CompanyDAO {
 					}			
 				}
 				invInfo.setFundingRoundPaths(fundingRoundsArrList);
-				Map<Integer, Integer> tmpmap = (Map)yearNoofFunds;
-				Map<Integer, Integer> temptreemap = new TreeMap<Integer, Integer>(tmpmap);
+				Map<Integer, CountAndPrice> tmpmap = (Map)yearNoofFunds;
+				Map<Integer, CountAndPrice> temptreemap = new TreeMap<Integer, CountAndPrice>(tmpmap);
 				invInfo.setYearNoofFunds(temptreemap);
 				hm.put(type, invInfo);				
 			}
 			
 			
-			ObjectWriter  ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-			System.out.println("HM TO JSON String --> "+ow.writeValueAsString(hm));
+			ObjectWriter  ow = new ObjectMapper().configure(SerializationConfig.Feature.FAIL_ON_EMPTY_BEANS, false).writer().withDefaultPrettyPrinter();						
+			//System.out.println("HM TO JSON String --> "+ow.writeValueAsString(hm));
+			System.out.println("HM TO JSON String --> get types of investors");
 			//System.out.println("aggregation result: "+cmdresult.toString());
 		}
 		catch(Exception pex){
@@ -310,7 +333,7 @@ public class CompanyDAO {
 	}
 	
 	
-	public void getTotalMoneyInvestedAndFundedOrganization(InvestorsInfo invinfo,String[] fundingRoundPaths,HashMap<Integer, Integer> yearNoOfFunds){
+	public void getTotalMoneyInvestedAndFundedOrganization(InvestorsInfo invinfo,String[] fundingRoundPaths,HashMap<Integer, CountAndPrice> yearNoOfFunds){
 		
 		JSONParser parser=new JSONParser();
 		DB db = MongoHandler.initializemongo();
@@ -337,12 +360,29 @@ public class CompanyDAO {
 					//fill yearNoOfFunds
 					if(propObj.get("announced_on_year") != null){
 						int year = Integer.parseInt(propObj.get("announced_on_year").toString()) ;
-						if(yearNoOfFunds.containsKey(year)){
-							int count = yearNoOfFunds.get(year);
+						CountAndPrice cp = new CountAndPrice();
+						double currentMoneyRaised = 0.0;
+						if(yearNoOfFunds.containsKey(year)){							
+							if(propObj.get("money_raised") != null){
+								currentMoneyRaised = Double.parseDouble(propObj.get("money_raised").toString());
+							}
+							
+							cp = yearNoOfFunds.get(year);
+							int count = cp.count;
 							count++;
-							yearNoOfFunds.put(year, count);
+							cp.count = count;
+							double tmpMoneyRaised = cp.moneyRaised;
+							currentMoneyRaised += tmpMoneyRaised;
+							cp.moneyRaised = currentMoneyRaised;
+							yearNoOfFunds.put(year, cp);
 						}else{
-							yearNoOfFunds.put(year, 1);
+							cp.count = 1;
+							
+							if(propObj.get("money_raised") != null){
+								currentMoneyRaised = Double.parseDouble(propObj.get("money_raised").toString());
+							}
+							cp.moneyRaised = currentMoneyRaised;		
+							yearNoOfFunds.put(year, cp);
 						}						
 					}
 					
@@ -399,7 +439,7 @@ public class CompanyDAO {
 					}					
 				}
 				ObjectWriter  ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
-				System.out.println("HM TO JSON String --> "+ow.writeValueAsString(hm));
+				//System.out.println("HM TO JSON String --> get investors based on location");
 			}				
 		}catch(Exception pex ){
 			pex.printStackTrace();
@@ -408,6 +448,57 @@ public class CompanyDAO {
 		return hm;		
 	}
 	
+	
+	public JSONArray investorsOnSearchedLocation(String searchText){
+		
+		String searchQuery="^"+searchText+".*";
+		String jsonCommand = "{aggregate:\"company\",pipeline:[" +
+				"{$match:{\"data.relationships.offices.items.city\":{$regex:'"+searchQuery+"',$options:'i'},\"data.properties.primary_role\":\"investor\"}}" +
+				"]}";
+		
+		CommandResult cmdresult = mongoOperations.executeCommand(jsonCommand);
+		
+		JSONParser parser;
+		JSONObject jsonobj;
+		JSONArray jsonarr;
+		
+		try{
+			parser = new JSONParser(); 
+			jsonobj =  (JSONObject)parser.parse(cmdresult.toString());			
+			System.out.println("location result: investors on searched locations");			
+			jsonarr = (JSONArray)jsonobj.get("result");
+			System.out.println("size is "+jsonarr.size());
+			return jsonarr;
+		}catch(Exception pex ){
+			pex.printStackTrace();
+		}
+		return null;
+	}
+	
+	public JSONArray getMatchingLocations(String searchText){
+		String searchQuery="^"+searchText+".*";
+		String jsonCommand = "{aggregate:\"locations\",pipeline:[{$match:{\"name\":{$regex:'"+searchQuery+"',$options: 'i'}}}," +
+				"{$project:{\"name\":1,\"uuid\":1}}]}";
+		
+		CommandResult cmdresult = mongoOperations.executeCommand(jsonCommand);
+		
+		JSONParser parser;
+		JSONObject jsonobj;
+		JSONArray jsonarr;
+		
+		try{
+			parser = new JSONParser(); 
+			jsonobj =  (JSONObject)parser.parse(cmdresult.toString());			
+			System.out.println("location result: get matching locations");
+			
+			jsonarr = (JSONArray)jsonobj.get("result");
+			System.out.println("size is "+jsonarr.size());
+			return jsonarr;
+		}catch(Exception pex ){
+		pex.printStackTrace();
+		}
+		return null;		
+	}
 	
 	public void getAcquisitionInfo(){
 		
@@ -431,9 +522,10 @@ public class CompanyDAO {
 			
 		//c.getFundRaisedByYear(); 
 		//c.getFundRaisedPerYearPerRound();
-		//c.getTypesOfInvestors();
-		c.getInvestorsBasedOnLocation();
-
+		c.getTypesOfInvestors();
+		//c.getInvestorsBasedOnLocation();
+		//c.getMatchingLocations("san franci");
+		//c.investorsOnSearchedLocation("san franci");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
